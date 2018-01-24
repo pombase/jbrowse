@@ -20,6 +20,7 @@ install:
 before_script:
   - cat tests/travis.conf | envsubst > tests/travis-envsubst.conf
   - nginx -c `pwd`/tests/travis-envsubst.conf
+  - sleep 10
 script:
   - phantomjs tests/js_tests/run-jasmine.js http://localhost:9000/tests/js_tests
   - jshint src/JBrowse/
