@@ -10,9 +10,9 @@ require([
         ) {
 describe('VCF store', function() {
 
-  
 
-  it('reads big dbsnp', function() {
+
+  xit('reads big dbsnp', function() {
          var store = new VCFStore({
              browser: new Browser({unitTestMode: true}),
              config: {
@@ -35,6 +35,68 @@ describe('VCF store', function() {
          runs(function() {
                   expect(features.length).toEqual( 560 );
          });
+  });
+
+
+
+
+  it('reads gvcf * alleles', function() {
+         var store = new VCFStore({
+             browser: new Browser({unitTestMode: true}),
+             config: {
+                 urlTemplate: '../data/gvcf.vcf.gz',
+                 baseUrl: '.'
+             },
+             refSeq: { name: '1', start: 0, end: 5000 }
+         });
+
+         var features = [];
+         waitsFor( function() { return features.done; } );
+         store.getFeatures({ ref: '1',
+                             start: 0,
+                             end: 5000
+                           },
+                           function(f) { features.push( f ); },
+                           function( ) { features.done = true; },
+                           function(e) { console.error(e.stack||''+e); }
+                          );
+         runs(function() {
+                  expect(features.length).toEqual( 7 );
+                  expect(features[2].get('alternative_alleles').values).toEqual("TC,<*>");
+         });
+
+
+
+  });
+
+
+  it('reads gatk non_ref alleles', function() {
+         var store = new VCFStore({
+             browser: new Browser({unitTestMode: true}),
+             config: {
+                 urlTemplate: '../data/raw.g.vcf.gz',
+                 baseUrl: '.'
+             },
+             refSeq: { name: 'ctgA', start: 0, end: 5000 }
+         });
+
+         var features = [];
+         waitsFor( function() { return features.done; } );
+         store.getFeatures({ ref: 'ctgA',
+                             start: 0,
+                             end: 100
+                           },
+                           function(f) { features.push( f ); },
+                           function( ) { features.done = true; },
+                           function(e) { console.error(e.stack||''+e); }
+                          );
+         runs(function() {
+                  expect(features.length).toEqual( 37 );
+                  expect(features[0].get('reference_allele')).toEqual(null);
+                  expect(features[0].get('alternative_alleles').values).toEqual('<NON_REF>');
+         });
+
+
 
   });
 
