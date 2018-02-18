@@ -787,7 +787,9 @@ return declare( 'JBrowse.View.TrackList.Faceted', null,
         // grid
         this._ifNotSuppressed('gridUpdate', function(){
             this._suppress('selectionEvents', function() {
-                this.dataGrid.selection.deselectAll();
+                if(this.dataGrid.selection) {
+                    this.dataGrid.selection.deselectAll();
+                }
 
                 // check the boxes that should be checked, based on our
                 // internal memory of what tracks should be on.
