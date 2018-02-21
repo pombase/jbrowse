@@ -746,6 +746,16 @@ initView: function() {
             }
             );
         thisObj.menuBar = menuBar;
+
+      var home = dojo.create('span', {
+        innerHTML: '<a href="https://www.pombase.org"><img src="https://www.pombase.org/assets/pombase-logo-tiny.png"/></a>',
+        style: {
+          "float": "left"
+        }
+      });
+
+      menuBar.appendChild( home );
+
         if( this.config.show_menu ) {
             ( this.config.show_nav ? topPane : this.container ).appendChild( menuBar );
         }
