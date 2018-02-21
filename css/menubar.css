@@ -4,7 +4,7 @@ div.menuBar {
     height: 25px;
 }
 .tundra .menuBar {
-    background: #396494;
+    background: linear-gradient(to right, #fff, #fff 105px, #396494 106px, #396494);
     text-align: right;
 }
 .tundra .menuBar a {
