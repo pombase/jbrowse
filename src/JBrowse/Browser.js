@@ -159,7 +159,7 @@ constructor: function(params) {
 
     // hook for externally applied initialization that can be setup in index.html
     if (typeof this.config.initExtra === 'function')
-       	this.config.initExtra(this,params);
+        this.config.initExtra(this,params);
 
     this.startTime = new Date();
 
@@ -414,7 +414,7 @@ welcomeScreen: function( container, error ) {
 
 
 
-        request(this.resolveUrl('sample_data/json/volvox/successfully_run')).then( function() {
+        request(thisB.resolveUrl('sample_data/json/volvox/successfully_run')).then( function() {
             try {
                 document.getElementById('volvox_data_placeholder')
                    .innerHTML = 'The example dataset is also available. View <a href="?data=sample_data/json/volvox">Volvox test data here</a>.';
@@ -484,7 +484,7 @@ fatalError: function( error ) {
                         var errors_div = dojo.byId('fatal_error_list');
                         dojo.create('div', { className: 'error', innerHTML: formatError(error)+'' }, errors_div );
                     }
-                    request( 'sample_data/json/volvox/successfully_run' ).then( function() {
+                    request( thisB.resolveUrl('sample_data/json/volvox/successfully_run') ).then( function() {
                            try {
                                dojo.byId('volvox_data_placeholder').innerHTML = 'However, it appears you have successfully run <code>./setup.sh</code>, so you can see the <a href="?data=sample_data/json/volvox">Volvox test data here</a>.';
                            } catch(e) {}
@@ -507,10 +507,10 @@ fatalError: function( error ) {
 loadSessions: function() {
     var fs = electronRequire('fs');
     var app = electronRequire('electron').remote.app;
+    var path = this.config.electronData + '/sessions.json';
 
-    var path = app.getPath('userData') + "/sessions.json";
     var obj = JSON.parse( fs.readFileSync( path, 'utf8' ) );
-    var table = dojo.create( 'table', { style: { overflow: 'hidden', width: '90%' } }, dojo.byId('previousSessions') );
+    var table = dojo.create( 'table', { id: 'previousSessionsTable', style: { overflow: 'hidden', width: '90%' } }, dojo.byId('previousSessions') );
     var thisB = this;
 
     if( ! obj.length ) {
@@ -548,6 +548,8 @@ loadRefSeqs: function() {
                 .getRefSeqs(function(refSeqs) {
                     thisB.addRefseqs(refSeqs);
                     deferred.resolve({success:true});
+                }, function(error) {
+                    deferred.reject(error);
                 });
             return;
         }
@@ -752,20 +754,6 @@ initView: function() {
                   }
                 )
             );
-            this.addGlobalMenuItem(this.config.classicMenu ? 'file':'dataset',
-              new dijitMenuItem(
-                  {
-                      id: 'menubar_dataset_conf',
-                      label: "Open plugin",
-                      iconClass: 'dijitIconConfigure',
-                      onClick: function() {
-                            new PreferencesDialog({
-                                    browser: thisObj,
-                                    setCallback: dojo.hitch( thisObj, 'openConfig' )
-                                }).show();
-                            }
-                  }
-            ));
             this.addGlobalMenuItem(this.config.classicMenu ? 'file':'dataset',
               new dijitMenuItem(
                   {
@@ -1121,8 +1109,7 @@ renderDatasetSelect: function( parent ) {
 
 saveSessionDir: function( directory ) {
     var fs = electronRequire('fs');
-    var app = electronRequire('electron').remote.app;
-    var path = app.getPath('userData')+"/sessions.json";
+    var path = this.config.electronData + '/sessions.json';
     var obj = [];
 
     try {
@@ -1131,7 +1118,7 @@ saveSessionDir: function( directory ) {
     catch(e) {}
 
     var dir = Util.replacePath( directory );
-    if( array.every(obj, function(elt) { return elt.session!=dir; }) )
+    if( array.every(obj, function(elt) { return elt.session != dir; }) )
         obj.push({ session: dir });
 
     fs.writeFileSync(path, JSON.stringify( obj, null, 2 ), 'utf8');
@@ -1170,7 +1157,9 @@ openConfig: function( plugins ) {
 
     try {
         fs.writeFileSync( dir + "/trackList.json", JSON.stringify(trackList, null, 2) );
-    } catch(e) { console.log("Failed to save trackList.json"); }
+    } catch(e) {
+        console.error("Failed to save trackList.json");
+    }
     window.location.reload();
 },
 
@@ -1255,14 +1244,15 @@ openFastaElectron: function() {
                     refSeqOrder: results.refSeqOrder
                 };
 
-                // fix dix to be user data if we are accessing a url for fasta
-                var dir = app.getPath('userData')+"/"+confs[0].label;
-
+                // fix dir to be user data if we are accessing a url for fasta
+                var dir = this.config.electronData;
+                fs.existsSync(dir) || fs.mkdirSync(dir); // make base folder exist first before subdir
+                dir += '/' + confs[0].label;
 
                 try {
                     fs.existsSync(dir) || fs.mkdirSync(dir);
                     fs.writeFileSync( dir + "/trackList.json", JSON.stringify(trackList, null, 2));
-                    fs.closeSync( fs.openSync( dir+"/tracks.conf", 'w' ) );
+                    fs.closeSync( fs.openSync( dir + "/tracks.conf", 'w' ) );
                     this.saveSessionDir( dir );
                     window.location = window.location.href.split('?')[0] + "?data=" + Util.replacePath( dir );
                 } catch(e) { alert(e); }
@@ -1288,7 +1278,9 @@ openFastaElectron: function() {
                         refSeqOrder: results.refSeqOrder
                     };
                     try {
-                        var dir = app.getPath('userData')+"/"+confs[0].label;
+                        var dir = thisB.config.electronData;
+                        fs.existsSync(dir) || fs.mkdirSync(dir); // make base folder exist first before subdir
+                        dir += '/' + confs[0].label;
                         fs.existsSync(dir) || fs.mkdirSync(dir);
                         fs.writeFileSync(dir + "/trackList.json", JSON.stringify(trackList, null, 2));
                         fs.closeSync(fs.openSync( dir+"/tracks.conf", 'w' ));
@@ -1326,10 +1318,10 @@ openFastaElectron: function() {
                         refSeqOrder: results.refSeqOrder
                     };
                     try {
-                        var dir = app.getPath('userData')+"/"+confs[0].label;
+                        var dir = thisB.config.electronData + '/' + confs[0].label;
                         fs.existsSync(dir) || fs.mkdirSync(dir);
-                        fs.writeFileSync(dir + "/trackList.json", JSON.stringify(trackList, null, 2));
-                        fs.closeSync(fs.openSync( dir+"/tracks.conf", 'w' ));
+                        fs.writeFileSync(dir + '/trackList.json', JSON.stringify(trackList, null, 2));
+                        fs.closeSync(fs.openSync( dir + '/tracks.conf', 'w' ));
                         thisB.saveSessionDir( dir );
                         window.location = window.location.href.split('?')[0] + "?data=" + Util.replacePath( dir );
                     } catch(e) { alert(e); }

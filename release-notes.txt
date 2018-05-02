@@ -25,6 +25,9 @@
  * The Perl formatting tools now properly read `include`-ed configuration files. Thanks to @carrere
    for pointing out this bug. (issue #551, @rbuels)
 
+ * Re-enabled JBrowse Desktop builds based on automatically building on Travis-CI
+   (issue #1028, @cmdcolin)
+
 # Release 1.14.0     2018-04-18 15:14:58 UTC
 
 ## Major improvements

@@ -1,4 +1,4 @@
-sudo: false
+sudo: true
 dist: trusty
 language: perl
 python: 2.7.10
@@ -25,6 +25,10 @@ env:
     global:
         - GECKODRIVER_VERSION=0.19.1
         - PHANTOMJS_VERSION=2.1.1
+before_install:
+  - sudo dpkg --add-architecture i386
+  - sudo apt-get -qq update
+  - sudo apt-get install wine1.6
 install:
 - "export PATH=$PWD/travis_phantomjs/phantomjs-$PHANTOMJS_VERSION-linux-x86_64/bin:$PATH"
 - "if [ $(phantomjs --version) != $PHANTOMJS_VERSION ]; then rm -rf $PWD/travis_phantomjs; mkdir -p $PWD/travis_phantomjs; fi"
@@ -54,6 +58,7 @@ script:
 - prove -Isrc/perl5 -r -j3 tests/perl_tests;
 - utils/jb_run.js -p 9000 & sleep 2
 - node_modules/.bin/phantomjs tests/js_tests/run-jasmine.js http://localhost:9000/tests/js_tests/index.html
+- xvfb-run node_modules/.bin/ava --timeout=60s tests/electron_tests
 - MOZ_HEADLESS=1 SELENIUM_BROWSER=firefox JBROWSE_URL=http://localhost:9000/index.html tests/selenium_tests/travis_wrapper.sh;
 # if we are building for inclusion into the `dev` branch, build the releases and test the minimal one too
 - |
