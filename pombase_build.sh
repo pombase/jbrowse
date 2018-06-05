@@ -1,5 +1,7 @@
 #!/bin/sh
 
+./setup.sh
+
 make -f build/Makefile release-min
 
 rm -rf sample_data
