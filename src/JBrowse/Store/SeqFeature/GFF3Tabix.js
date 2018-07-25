@@ -35,12 +35,24 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
     supportsFeatureTransforms: true,
 
     constructor( args ) {
-        var tbiBlob = args.tbi ||
-            new XHRBlob(
-                this.resolveUrl(
-                    this.getConf('tbiUrlTemplate',[]) || this.getConf('urlTemplate',[])+'.tbi'
-                )
-            )
+        this.dontRedispatch = (args.dontRedispatch||"").split( /\s*,\s*/ );
+        var csiBlob, tbiBlob;
+
+        if(args.csi || this.config.csiUrlTemplate) {
+            csiBlob = args.csi ||
+                new XHRBlob(
+                    this.resolveUrl(
+                        this.getConf('csiUrlTemplate',[])
+                    )
+                );
+        } else {
+            tbiBlob = args.tbi ||
+                new XHRBlob(
+                    this.resolveUrl(
+                        this.getConf('tbiUrlTemplate',[]) || this.getConf('urlTemplate',[])+'.tbi'
+                    )
+                );
+        }
 
         var fileBlob = args.file ||
             new XHRBlob(
@@ -50,6 +62,7 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
         this.indexedData = new TabixIndexedFile(
             {
                 tbi: tbiBlob,
+                csi: csiBlob,
                 file: fileBlob,
                 browser: this.browser,
                 chunkSizeLimit: args.chunkSizeLimit || 1000000
@@ -119,9 +132,11 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
                             let minStart = Infinity
                             let maxEnd = -Infinity
                             lines.forEach( line => {
-                                let start = line.start-1 // tabix indexes are 1-based
-                                if (start < minStart) minStart = start
-                                if (line.end > maxEnd) maxEnd = line.end
+                                if(!this.dontRedispatch.includes(line.fields[2])) {
+                                    let start = line.start-1 // tabix indexes are 1-based
+                                    if (start < minStart) minStart = start
+                                    if (line.end > maxEnd) maxEnd = line.end
+                                }
                             })
                             if (maxEnd > query.end || minStart < query.start) {
                                 let newQuery = Object.assign({},query,{ start: minStart, end: maxEnd })
@@ -214,31 +229,23 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
             histogram[bin] = 0
         }
 
-        this.getHeader().then(
-            () => {
-                this.indexedData.getLines(
-                    query.ref || this.refSeq.name,
-                    query.start,
-                    query.end,
-                    line => {
-                        let binValue = Math.round( (line.start - query.start )* binRatio)
-                        let binValueEnd = Math.round( (line.end - query.start )* binRatio)
+        this._getFeatures(query,
+            feature => {
+                let binValue = Math.round( (feature.get('start') - query.start )* binRatio)
+                let binValueEnd = Math.round( (feature.get('end')- query.start )* binRatio)
 
-                        for(let bin = binValue; bin < binValueEnd; bin++) {
-                            histogram[bin] += 1
-                            if (histogram[bin] > stats.max) {
-                                stats.max = histogram[bin]
-                            }
-                        }
-                    },
-                    () => {
-                        successCallback({ bins: histogram, stats: stats})
-                    },
-                    errorCallback
-                );
+                for(let bin = binValue; bin <= binValueEnd; bin++) {
+                    histogram[bin] += 1
+                    if (histogram[bin] > stats.max) {
+                        stats.max = histogram[bin]
+                    }
+                }
+            },
+            () => {
+                successCallback({ bins: histogram, stats: stats})
             },
             errorCallback
-        )
+        );
     },
 
 
@@ -251,9 +258,12 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
         f.start -= 1 // convert to interbase
         f.strand = {'+': 1, '-': -1, '.': 0, '?': undefined}[f.strand] // convert strand
         for (var a in data.attributes) {
-            f[a.toLowerCase()] = data.attributes[a].join(',')
+            let b = a.toLowerCase();
+            f[b] = data.attributes[a]
+            if(f[b].length == 1) f[b] = f[b][0]
         }
         f.uniqueID = `offset-${f._tabixfileoffset}`
+
         delete f._tabixfileoffset
         delete f.attributes
         // the SimpleFeature constructor takes care of recursively inflating subfeatures
@@ -307,7 +317,8 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
     saveStore() {
         return {
             urlTemplate: this.config.file.url,
-            tbiUrlTemplate: this.config.tbi.url
+            tbiUrlTemplate: ((this.config.tbi)||{}).url,
+            csiUrlTemplate: ((this.config.csi)||{}).url
         };
     }
 

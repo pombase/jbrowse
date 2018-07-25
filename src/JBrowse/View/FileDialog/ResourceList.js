@@ -104,9 +104,15 @@ return declare( null, {
                         { label: "BED+bgzip",   value: "bed.gz" },
                         { label: "BED",         value: "bed"    },
                         { label: "GFF3+bgzip",  value: "gff3.gz"},
-                        { label: "Tabix index", value: "vcf.gz.tbi" },
-                        { label: "Tabix index", value: "gff3.gz.tbi" },
-                        { label: "Tabix index", value: "bed.gz.tbi" }
+                        { label: "VCF+Tabix index", value: "vcf.gz.tbi" },
+                        { label: "GFF3+Tabix index", value: "gff3.gz.tbi" },
+                        { label: "BED+Tabix index", value: "bed.gz.tbi" },
+                        { label: "BED+CSI index", value: "bed.gz.csi" },
+                        { label: "VCF+CSI index", value: "vcf.gz.csi" },
+                        { label: "GFF3+CSI index", value: "gff3.gz.csi" },
+                        { label: "BAM+CSI index", value: "bam.csi" },
+                        { label: "CRAM",   value: "cram"        },
+                        { label: "CRAM index",   value: "cram.crai"},
                     ],
                     value: this.guessType( name ),
                     onChange: function() {
@@ -155,7 +161,7 @@ return declare( null, {
     guessType: function( name ) {
         return ( this._rememberedTypes||{} )[name] || (
                 /\.bam$/i.test( name )          ? 'bam'    :
-                /\.bam.bai$/i.test( name )      ? 'bam.bai'    :
+                /\.bai$/i.test( name )          ? 'bam.bai'    :
                 /\.gff3?$/i.test( name )        ? 'gff3'   :
                 /\.gtf?$/i.test( name )         ? 'gtf'    :
                 /\.(bw|bigwig)$/i.test( name )  ? 'bigwig' :
@@ -166,12 +172,18 @@ return declare( null, {
                 /\.vcf$/i.test( name )          ? 'vcf'    :
                 /\.vcf\.gz$/i.test( name )      ? 'vcf.gz' :
                 /\.bed\.gz$/i.test( name )      ? 'bed.gz' :
+                /\.gff3?\.gz$/i.test( name )    ? 'gff3.gz':
                 /\.bed$/i.test( name )          ? 'bed'    :
                 /\.(bb|bigbed)$/i.test( name )  ? 'bb'     :
-                /\.gff3?\.gz$/i.test( name )    ? 'gff3.gz':
                 /\.gff3?\.gz.tbi$/i.test( name )? 'gff3.gz.tbi' :
                 /\.vcf.gz.tbi$/i.test( name )   ? 'vcf.gz.tbi'  :
                 /\.bed.gz.tbi$/i.test( name )   ? 'bed.gz.tbi'  :
+                /\.bed.gz.csi/i.test( name )    ? 'bed.gz.csi'  :
+                /\.gff3?\.gz.csi$/i.test( name )? 'gff3.gz.csi'  :
+                /\.vcf.gz.csi$/i.test( name )   ? 'vcf.gz.csi'  :
+                /\.bam.csi$/i.test( name )      ? 'bam.csi'  :
+                /\.cram$/i.test( name )         ? 'cram'  :
+                /\.crai$/i.test( name )         ? 'cram.crai'  :
                                                   null
         );
     }
