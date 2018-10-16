@@ -1,36 +1,31 @@
-import gff from '@gmod/gff'
+const gff = cjsRequire('@gmod/gff').default
 
 define([
            'dojo/_base/declare',
-           'dojo/_base/lang',
-           'dojo/_base/array',
-           'dojo/Deferred',
            'JBrowse/Util',
            'JBrowse/Model/SimpleFeature',
            'JBrowse/Store/SeqFeature',
            'JBrowse/Store/DeferredStatsMixin',
            'JBrowse/Store/DeferredFeaturesMixin',
            'JBrowse/Store/TabixIndexedFile',
-           'JBrowse/Store/SeqFeature/GlobalStatsEstimationMixin',
+           'JBrowse/Store/SeqFeature/IndexedStatsEstimationMixin',
+           'JBrowse/Store/SeqFeature/RegionStatsMixin',
            'JBrowse/Model/XHRBlob',
        ],
        function(
            declare,
-           lang,
-           array,
-           Deferred,
            Util,
            SimpleFeature,
            SeqFeatureStore,
            DeferredStatsMixin,
            DeferredFeaturesMixin,
            TabixIndexedFile,
-           GlobalStatsEstimationMixin,
+           IndexedStatsEstimationMixin,
+           RegionStatsMixin,
            XHRBlob,
-           Parser,
        ) {
 
-return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, GlobalStatsEstimationMixin ],
+return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, IndexedStatsEstimationMixin, RegionStatsMixin ],
 {
     supportsFeatureTransforms: true,
 
@@ -56,7 +51,8 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
 
         var fileBlob = args.file ||
             new XHRBlob(
-                this.resolveUrl( this.getConf('urlTemplate',[]) )
+                this.resolveUrl( this.getConf('urlTemplate',[]) ),
+                { expectRanges: true }
             )
 
         this.indexedData = new TabixIndexedFile(
@@ -69,9 +65,9 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
             })
 
         // start our global stats estimation
-        this.getHeader()
+        this.indexedData.featureCount('nonexistent')
             .then(
-                header => {
+                () => {
                     this._deferred.features.resolve({ success: true })
                     this._estimateGlobalStats()
                         .then(
@@ -86,33 +82,8 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
             )
     },
 
-    getHeader() {
-        if (this._parsedHeader) return this._parsedHeader
-
-        this._parsedHeader = new Deferred()
-        const reject = this._parsedHeader.reject.bind(this._parsedHeader)
-
-        this.indexedData.indexLoaded
-            .then( () => {
-                const maxFetch = this.indexedData.index.firstDataLine
-                    ? this.indexedData.index.firstDataLine.block + this.indexedData.data.blockSize - 1
-                    : null
-
-                this.indexedData.data.read(
-                    0,
-                    maxFetch,
-                    bytes => this._parsedHeader.resolve( this.header ),
-                    reject
-                );
-            },
-            reject
-        )
-
-        return this._parsedHeader
-    },
-
     _getFeatures(query, featureCallback, finishedCallback, errorCallback, allowRedispatch = true) {
-        this.getHeader().then(
+        this.indexedData.featureCount('nonexistent').then(
             () => {
                 const lines = []
                 this.indexedData.getLines(
@@ -131,14 +102,21 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
                         if (allowRedispatch && lines.length) {
                             let minStart = Infinity
                             let maxEnd = -Infinity
-                            lines.forEach( line => {
-                                if(!this.dontRedispatch.includes(line.fields[2])) {
-                                    let start = line.start-1 // tabix indexes are 1-based
+                            lines.forEach(line => {
+                                const featureType = line.fields[2]
+                                // only expand redispatch range if the feature is not in dontRedispatch,
+                                // and is a top-level feature
+                                if(
+                                    !this.dontRedispatch.includes(featureType) &&
+                                    this._isTopLevelFeatureType(featureType)
+                                ) {
+                                    let start = line.start-1 // gff is 1-based
                                     if (start < minStart) minStart = start
                                     if (line.end > maxEnd) maxEnd = line.end
                                 }
                             })
                             if (maxEnd > query.end || minStart < query.start) {
+                                // console.log(`redispatching ${query.start}-${query.end} => ${minStart}-${maxEnd}`)
                                 let newQuery = Object.assign({},query,{ start: minStart, end: maxEnd })
                                 // make a new feature callback to only return top-level features
                                 // in the original query range
@@ -189,65 +167,6 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
             errorCallback
         )
     },
-
-    getRegionFeatureDensities(query, successCallback, errorCallback) {
-        let numBins
-        let basesPerBin
-
-        if (query.numBins) {
-            numBins = query.numBins;
-            basesPerBin = (query.end - query.start)/numBins
-        } else if (query.basesPerBin) {
-            basesPerBin = query.basesPerBin || query.ref.basesPerBin
-            numBins = Math.ceil((query.end-query.start)/basesPerBin)
-        } else {
-            throw new Error('numBins or basesPerBin arg required for getRegionFeatureDensities')
-        }
-
-        const statEntry = (function (basesPerBin, stats) {
-            for (var i = 0; i < stats.length; i++) {
-                if (stats[i].basesPerBin >= basesPerBin) {
-                    return stats[i]
-                }
-            }
-            return undefined
-        })(basesPerBin, [])
-
-        const stats = {}
-        stats.basesPerBin = basesPerBin
-
-        stats.scoreMax = 0
-        stats.max = 0
-        const firstServerBin = Math.floor( query.start / basesPerBin)
-        const histogram = []
-        const binRatio = 1 / basesPerBin
-
-        let binStart
-        let binEnd
-
-        for (var bin = 0 ; bin < numBins ; bin++) {
-            histogram[bin] = 0
-        }
-
-        this._getFeatures(query,
-            feature => {
-                let binValue = Math.round( (feature.get('start') - query.start )* binRatio)
-                let binValueEnd = Math.round( (feature.get('end')- query.start )* binRatio)
-
-                for(let bin = binValue; bin <= binValueEnd; bin++) {
-                    histogram[bin] += 1
-                    if (histogram[bin] > stats.max) {
-                        stats.max = histogram[bin]
-                    }
-                }
-            },
-            () => {
-                successCallback({ bins: histogram, stats: stats})
-            },
-            errorCallback
-        );
-    },
-
 
 
     _featureData(data) {
@@ -311,7 +230,7 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, Gl
      * others are not.
      */
     hasRefSeq( seqName, callback, errorCallback ) {
-        return this.indexedData.index.hasRefSeq( seqName, callback, errorCallback );
+        return this.indexedData.hasRefSeq( seqName, callback, errorCallback );
     },
 
     saveStore() {

@@ -1,9 +1,16 @@
 require([
-            'JBrowse/View/FileDialog/TrackList/BAMDriver',
-            'JBrowse/View/FileDialog/TrackList/GFF3TabixDriver'
-        ], function( BAMDriver, GFF3TabixDriver ) {
+    'JBrowse/View/FileDialog/TrackList/BAMDriver',
+    'JBrowse/View/FileDialog/TrackList/GFF3TabixDriver',
+    'JBrowse/View/FileDialog/TrackList/IndexedFASTADriver',
+    'JBrowse/View/FileDialog/TrackList/BgzipIndexedFASTADriver'
+], function(
+    BAMDriver,
+    GFF3TabixDriver,
+    IndexedFastaDriver,
+    BgzipIndexedFastaDriver
+) {
 
-describe( 'FileDialog BAM driver', function() {
+describe( 'FileDialog drivers', function() {
 
 
     it( 'can match a simple BAM URL with its BAI URL', function( ) {
@@ -90,6 +97,61 @@ describe( 'FileDialog BAM driver', function() {
         driver.finalizeConfiguration(confs);
         expect( confs.foo.tbi.blob.name ).toEqual( 'zee.gff.gz.tbi' );
         expect( confs.foo.file.blob.name ).toEqual( 'zee.gff.gz' );
+    });
+    it( 'FASTA file extension test with .fasta', function( ) {
+        var confs = { foo: { fasta: { blob: { name :'zee.fasta'} } } };
+        var driver = new IndexedFastaDriver();
+        expect( driver.tryResource( confs, { type: 'fai', file: { name: 'zee.fasta.fai'} } ) ).toBeTruthy();
+        driver.finalizeConfiguration(confs);
+        expect( confs.foo.fai.blob.name ).toEqual( 'zee.fasta.fai' );
+        expect( confs.foo.fasta.blob.name ).toEqual( 'zee.fasta' );
+    });
+    it( 'FASTA file extension test with .fa', function( ) {
+        var confs = { foo: { fasta: { blob: { name :'zee.fa'} } } };
+        var driver = new IndexedFastaDriver();
+        expect( driver.tryResource( confs, { type: 'fai', file: { name: 'zee.fa.fai'} } ) ).toBeTruthy();
+        driver.finalizeConfiguration(confs);
+        expect( confs.foo.fai.blob.name ).toEqual( 'zee.fa.fai' );
+        expect( confs.foo.fasta.blob.name ).toEqual( 'zee.fa' );
+    });
+    it( 'FASTA file unindexed', function( ) {
+        var confs = { foo: { fasta: { blob: { name :'zee.fa'} } } };
+        var driver = new IndexedFastaDriver();
+        driver.finalizeConfiguration(confs);
+        expect( confs.foo.fasta.blob.name ).toEqual( 'zee.fa' );
+    });
+
+    it( 'BGZIP FASTA file variant 1', function( ) {
+        var confs = { foo: { bgzfa: { blob: { name :'zee.fa.gz'} } } };
+        var driver = new BgzipIndexedFastaDriver();
+        expect( driver.tryResource( confs, { type: 'fasta.gz.fai', file: { name: 'zee.fa.gz.fai'} } ) ).toBeTruthy();
+        expect( driver.tryResource( confs, { type: 'gzi', file: { name: 'zee.fa.gz.gzi'} } ) ).toBeTruthy();
+        driver.finalizeConfiguration(confs);
+        expect( confs.foo.fai.blob.name ).toEqual( 'zee.fa.gz.fai' );
+        expect( confs.foo.gzi.blob.name ).toEqual( 'zee.fa.gz.gzi' );
+        expect( confs.foo.bgzfa.blob.name ).toEqual( 'zee.fa.gz' );
+    });
+
+    it( 'BGZIP FASTA file variant 2', function( ) {
+        var confs = { foo: { fai: { blob: { name :'zee.fa.gz.fai'} } } };
+        var driver = new BgzipIndexedFastaDriver();
+        expect( driver.tryResource( confs, { type: 'fasta.gz', file: { name: 'zee.fa.gz'} } ) ).toBeTruthy();
+        expect( driver.tryResource( confs, { type: 'gzi', file: { name: 'zee.fa.gz.gzi'} } ) ).toBeTruthy();
+        driver.finalizeConfiguration(confs);
+        expect( confs.foo.fai.blob.name ).toEqual( 'zee.fa.gz.fai' );
+        expect( confs.foo.gzi.blob.name ).toEqual( 'zee.fa.gz.gzi' );
+        expect( confs.foo.bgzfa.blob.name ).toEqual( 'zee.fa.gz' );
+    });
+
+    it( 'BGZIP FASTA file variant 3', function( ) {
+        var confs = { foo: { bgzfa: { blob: { name :'zee.fa.gz'} } } };
+        var driver = new BgzipIndexedFastaDriver();
+        expect( driver.tryResource( confs, { type: 'gzi', file: { name: 'zee.fa.gz.gzi'} } ) ).toBeTruthy();
+        expect( driver.tryResource( confs, { type: 'fasta.gz.fai', file: { name: 'zee.fa.gz.fai'} } ) ).toBeTruthy();
+        driver.finalizeConfiguration(confs);
+        expect( confs.foo.fai.blob.name ).toEqual( 'zee.fa.gz.fai' );
+        expect( confs.foo.gzi.blob.name ).toEqual( 'zee.fa.gz.gzi' );
+        expect( confs.foo.bgzfa.blob.name ).toEqual( 'zee.fa.gz' );
     });
 });
 });

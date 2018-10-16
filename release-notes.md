@@ -1,11 +1,161 @@
+# Release 1.15.4     2018-10-05 13:02:55 UTC
+
+## Minor improvements
+
+ * Added support for bgzipped indexed FASTA. To use, bgzip your FASTA with
+   `bgzip -i file.fa`, which generates file.fa.gz and file.fa.gzi and then use
+   `samtools faidx file.fa.gz`. If you specify the .fa.gz in the track config e.g.
+   `"urlTemplate": "file.fa.gz"` and have all three files in your data directory,
+   then they will automatically be detected (issue #1152, pull #1200, @cmdcolin)
+
+ * Allow fna and mfa file extensions for FASTA to be recognized by default in
+   the Open sequence dialog (issue #1205, @cmdcolin)
+
+ * Improve the layout slightly for dense features (issue #1210, @cmdcolin)
+
+ * Added a `topLevelFeaturesPercent` configuration variable that can be used to
+   correct feature statistics estimates when `topLevelFeatures` is being used for
+   a track, or when it contains deeply-nested features. This configuration variable
+   is currently only used by BAM, BEDTabix, GFF3Tabix, and VCFTabix stores.
+   (issue #1147, pull #1209, @rbuels)
+
+ * Tabix-based data stores use a new storage backend based on the `@gmod/tabix` npm
+   module. Users should see some modest performance improvements for Tabix-based
+   tracks. (issue #1195, pull #1209, @rbuels)
+
+ * Added `hideSequenceBox` config to allow hiding the FASTA boxes in the View details
+   popups. Thanks to @andreamini for reporting (issue #1211, pull #1219, @cmdcolin)
+
+ * Added `categoryOrder` config to allow sorting the categories in the Hierarchical
+   track selector. For example, `categoryOrder=VCF,Quantitative/Density,BAM`. Note
+   that we specify a lowest level subcategory e.g. Quantitative/Density to sort the
+   parent category Quantitative to a position (issue #1203, pull #1208, @cmdcolin)
+
+## Bug fixes
+
+ * Fixed a bug in which feature labels would sometimes be repeated across the view,
+   in the wrong locations. (@rbuels)
+
+ * Fixed error where a chunk size limit error during histogram display would not be
+   displayed (@cmdcolin)
+
+ * Fixed issue where Open sequence dialog will open up the default "data" directory
+   instead of a blank instance (issue #1207, @cmdcolin)
+
+ * Added check for PCR duplicates for CRAM features (@cmdcolin)
+
+ * Fixed issue where editing the track names and types in the "Open track" dialog box
+   was not working when editing multiple tracks (issue #1217, @cmdcolin)
+
+ * Fixed issue in which large VCF headers were not always correctly parsed by JBrowse
+   (issue #1139, pull #1209, @rbuels)
+
+ * Fixed issue where the histogram Y-scale bar would appear over features (issue
+   #1214, pull #1218, @cmdcolin)
+
+# Release 1.15.3     2018-08-29 22:34:53 UTC
+
+## Minor improvements
+
+ * Add ability to automatically deduce the storeClass and trackType of files based on
+   the file extension of urlTemplate. This allows very minimal configs where only
+   track label and urlTemplate can be specified. (pull #1189, @cmdcolin)
+
+## Bug fixes
+
+ * Fixed an issue with servers that use HTTP Basic Authentication on certain browsers,
+   notably some Chromium, Firefox 60 and earlier, and Safari. Thanks to Keiran Raine
+   for reporting and @cmdcolin for debugging. (issue #1186, @rbuels)
+
+ * Fix issue where searching for reference sequence names would not be navigate to the
+   typed in reference sequence (issue #1193, @cmdcolin)
+
+# Release 1.15.2     2018-08-16 21:02:27 UTC
+
+## Minor improvements
+
+ * Created "index stats estimation" which overrides the older "global stats estimation"
+   that randomly samples genomic regions of BAM, VCF, etc to find feature density. This
+   allows initial track load to be faster automatically. (issue #1092, pull #1167,
+   @cmdcolin)
+
+ * Removed the "full" or "dev" releases from the build. If you need a "dev" release, you
+   can simply download the JBrowse "source code" link from the GitHub releases page, or
+   use a git clone of the JBrowse repository. This will behave the same as the "dev"
+   release. (issue #1160, pull #1170, @cmdcolin)
+
+ * JBrowse now uses a new binary-file caching and fetching backend based on the
+   [http-range-fetcher](https://www.npmjs.com/package/http-range-fetcher) and
+   [tenacious-fetch](https://www.npmjs.com/package/tenacious-fetch) npm modules. Users
+   may see slightly higher performance when viewing indexed binary formats such as BAM,
+   CRAM, 2bit, etc. (issue #1155, issue #1175, pull #1165, @rbuels)
+
+ * Updated the main jbrowse.org website to use the docusaurus platform. The main docs
+   for the website are now moved from the GMOD.org server to jbrowse.org. You can find
+   the latest documentation in the header bar. We hope you will enjoy this upgrade!
+   There is also a new quick start guide based on setting up JBrowse with indexed file
+   formats. (issue #1153, issue #1137, pull #1173, @cmdcolin)
+
+
+## Bug fixes
+
+ * Added a more robust HTML processing in Util.js. Thanks to @hkmoon for the idea and
+   implementation. (pull #1169, @hkmoon)
+
+ * Remove utils/jb_run.js from the minified release (issue #1161, issue #1160, @cmdcolin)
+
+ * Fixes issue where navigating away from genome browser and returning would not remember
+   the location. Thanks to Vaneet Lotay for reporting. (issue #1168, @cmdcolin)
+
+ * Fixes off-by-one in the display of the size of the genomic region being viewed. Thanks
+   to @sammyjava for the bug report! (issue #1176, @cmdcolin)
+
+# Release 1.15.1     2018-08-01 23:59:52 UTC
+
+## Minor Improvements
+
+ * Add a internal code attribute for XHR requests that use byte-range headers so that if a
+   server does not support it, an error is returned immediately. Thanks to @theChinster
+   for the motivating example (issue #1131, issue #1132, pull #1134, @cmdcolin).
+
+ * Speed up TwoBit file processing with a robust implementation of the file spec. The
+   improvements are contained in a new npm module [@gmod/twobit](https://www.npmjs.com/package/@gmod/twobit).
+   Thanks to @cmdcolin for some testing and motivating examples. (issue #1116, pull #1146,
+   @rbuels)
+
+ * Added feature.get('seq') to CRAM features which enables detailed comparison of the
+   read versus the reference with the renderAlignment configuration. (issue #1126,
+   pull #1149, @rbuels)
+
+ * Added support for 1000genomes CRAM 2.0 codecs via updates to the @gmod/cram npm module.
+   (@rbuels)
+
+ * Add some better formatting for rich metadata in the "About this track" dialog boxes for
+   tracks. Thanks to Wojtek Bażant for the idea and implementation! (pull #1148, @wbazant)
+
+## Bug fixes
+
+ * Fix bug where prepare-refseqs with indexed FASTA would allows scrolling past the end of
+   the chromosome (@cmdcolin).
+
+ * Fix long standing bug related to not being able to configure dataRoot in the config file.
+   Now you can set dataRoot=mydirectory to make JBrowse load mydirectory instead of the
+   default `data` by default (issue #627, pull #1144, @cmdcolin).
+
+ * Added hashing of the BAM feature data to generate unique IDs in order to distinguish
+   reads that have nearly identical information (same read name, start, end, seq, etc).
+   If the reads literally have identical information in them JBrowse is still unable to
+   display but this generally seems to be due to limited use case such as secondary
+   alignments in RNA-seq (issue #1108, pull #1145, @cmdcolin)
+
 # Release 1.15.0     2018-07-20 00:24:49 UTC
-
-
-# Release 1.15.0     2018-07-19 22:17:59 UTC
 
 ## Major improvements
 
- * Added support for displaying alignments from CRAM files, using the new npm module [@gmod/cram](https://www.npmjs.com/package/@gmod/cram). Thanks to @keiranmraine, @cmdcolin, @nathanhaigh, and the authors of `htslib` and `htsjdk` for invaluable test data and suggestions during this major effort. (issue #546, pull #1120, @rbuels)
+ * Added support for displaying alignments from CRAM files, using the new npm module
+   [@gmod/cram](https://www.npmjs.com/package/@gmod/cram). Thanks to @keiranmraine, @cmdcolin,
+   @nathanhaigh, and the authors of `htslib` and `htsjdk` for invaluable test data and
+   suggestions during this major effort. (issue #546, pull #1120, @rbuels)
 
  * Added support for the CSI index format for tabix VCF/BED/GFF and BAM files! This allows
    individual chromosomes longer than ~537MB (2^29 bases) to be used in JBrowse. To enable,
@@ -79,11 +229,15 @@
 * Fix the representation of array-valued attributes in column 9 for GFF3Tabix. Thanks to
    @loraine-gueguen for the bug report! (issue #1122, @cmdcolin)
 
-* Fixed a bug in which visibleRegion() in GenomeView.js sometimes returned a non-integer value for `end`, which interfered with some scripts and plugins. Thanks to @rdhayes for noticing and contributing the fix! (issue #491, @rdhayes)
+* Fixed a bug in which visibleRegion() in GenomeView.js sometimes returned a non-integer value
+  for `end`, which interfered with some scripts and plugins. Thanks to @rdhayes for noticing and
+  contributing the fix! (issue #491, @rdhayes)
 
-* Fixed bug where reference sequences with names containing the `:` character could not be switched to by typing their name in the search box. (issue #1118, pull #1119, @nathanhaigh)
+* Fixed bug where reference sequences with names containing the `:` character could not be
+  switched to by typing their name in the search box. (issue #1118, pull #1119, @nathanhaigh)
 
-* Fixed `setup.sh` behavior when `node` is not installed, printing a decent error message. (issue #1082, pull #1083, @cmdcolin)
+* Fixed `setup.sh` behavior when `node` is not installed, printing a decent error message.
+  (issue #1082, pull #1083, @cmdcolin)
 
 
 # Release 1.14.2     2018-06-04 23:41:52 UTC

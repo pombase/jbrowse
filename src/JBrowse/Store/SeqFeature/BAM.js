@@ -9,7 +9,7 @@ define( [
             'JBrowse/Store/DeferredStatsMixin',
             'JBrowse/Store/DeferredFeaturesMixin',
             'JBrowse/Model/XHRBlob',
-            'JBrowse/Store/SeqFeature/GlobalStatsEstimationMixin',
+            'JBrowse/Store/SeqFeature/IndexedStatsEstimationMixin',
             './BAM/File'
         ],
         function(
@@ -23,11 +23,11 @@ define( [
             DeferredStatsMixin,
             DeferredFeaturesMixin,
             XHRBlob,
-            GlobalStatsEstimationMixin,
+            IndexedStatsEstimationMixin,
             BAMFile
         ) {
 
-var BAMStore = declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, GlobalStatsEstimationMixin ],
+var BAMStore = declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, IndexedStatsEstimationMixin ],
 
 /**
  * @lends JBrowse.Store.SeqFeature.BAM
@@ -43,7 +43,8 @@ var BAMStore = declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesM
         var bamBlob = args.bam ||
             new XHRBlob( this.resolveUrl(
                              args.urlTemplate || 'data.bam'
-                         )
+                         ),
+                         { expectRanges: true }
                        );
 
         var csiBlob, baiBlob;
@@ -66,12 +67,12 @@ var BAMStore = declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesM
 
 
         this.bam = new BAMFile({
-                store: this,
-                data: bamBlob,
-                bai: baiBlob,
-                browser: browser,
-                csi: csiBlob,
-                chunkSizeLimit: args.chunkSizeLimit
+            store: this,
+            data: bamBlob,
+            bai: baiBlob,
+            browser: browser,
+            csi: csiBlob,
+            chunkSizeLimit: args.chunkSizeLimit
         });
 
         this.source = ( bamBlob.url  ? bamBlob.url.match( /\/([^/\#\?]+)($|[\#\?])/ )[1] :

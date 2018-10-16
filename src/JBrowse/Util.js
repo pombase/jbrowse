@@ -38,7 +38,7 @@ Util = {
     },
 
     escapeHTML: function( str ) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return str.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     },
 
     /**
@@ -220,7 +220,11 @@ Util = {
     },
 
     resolveUrl: function(baseUrl, relativeUrl) {
-        if(this.isElectron() && relativeUrl[0] == '/') return relativeUrl;
+        if(this.isElectron()) {
+            // url.resolve does not correctly resolve absolute file urls
+            if (relativeUrl.substr(0,8) === 'file:///')
+                return relativeUrl
+        }
         return url.resolve(baseUrl, relativeUrl)
     },
 
@@ -345,7 +349,7 @@ Util = {
         return bn;
     },
 
-    assembleLocString: function( loc_in ) {
+    assembleLocString: function( loc_in, useExtra = true ) {
         var s = '',
         types = { start: 'number', end: 'number', ref: 'string', strand: 'number' },
         location = {}
@@ -379,7 +383,7 @@ Util = {
             s += ({'1':' (+ strand)', '-1': ' (- strand)', '0': ' (no strand)' }[ location.strand || '' ]) || '';
 
         // add on any extra stuff if it was passed in
-        if( 'extra' in loc_in )
+        if( useExtra && 'extra' in loc_in )
             s += loc_in.extra;
 
         return s;
@@ -416,7 +420,7 @@ Util = {
 
     assembleLocStringWithLength: function( def ) {
         var locString = Util.assembleLocString( def );
-        var length = def.length || def.end-def.start+1;
+        var length = def.length || def.end-def.start;
         return locString + ' ('+Util.humanReadableNumber( length )+'b)';
     },
 
