@@ -8,6 +8,6 @@ mv sample_data /tmp/$$.sample_data
 
 make -f build/Makefile release-min
 
-tar czvf JBrowse-$VERSION.tar.gz JBrowse-$VERSION
+tar --exclude '*~' -czvf JBrowse-$VERSION.tar.gz JBrowse-$VERSION
 
 mv /tmp/$$.sample_data sample_data
