@@ -75,7 +75,9 @@ _getFeatureRectangle( viewArgs, feature ) {
         var transcriptType = this.getConfForFeature( 'transcriptType', feature );
         var noncodingType = this.getConfForFeature( 'noncodingType', feature );
         for( var i = 0; i < subfeatures.length; i++ ) {
-            var subRect = ( subfeatures[i].get('type') == transcriptType
+            var subRect = ( subfeatures[i].get('type') == transcriptType ||
+                          typeof(transcriptType) == 'object' &&
+                            transcriptType.indexOf(subfeatures[i].get('type')) != -1
                             ? this._ptGlyph()
                             : (noncodingType.includes(subfeatures[i].get('type')) ?  this._ntGlyph() : this._boxGlyph())
                           )._getFeatureRectangle( subArgs, subfeatures[i] );
