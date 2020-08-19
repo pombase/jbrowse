@@ -1,3 +1,4 @@
+import normalizeWheel from 'normalize-wheel'
 define([
            'dojo/_base/declare',
            'dojo/_base/array',
@@ -456,6 +457,10 @@ _behaviors: function() { return {
                     if( evt.keyCode == dojo.keys.SHIFT ) // shift
                         this.behaviorManager.swapBehaviors( 'shiftMouse', 'normalMouse' );
                 }),
+                dojo.connect( window, 'blur', this, function(evt) {
+                    // Simulate releasing shift if user switches tabs with ctrl+shift+tab
+                    this.behaviorManager.swapBehaviors( 'shiftMouse', 'normalMouse' );
+                }),
                 dojo.connect( document.body, 'onkeydown', this, function(evt) {
                     if( evt.keyCode == dojo.keys.SHIFT ) // shift
                         this.behaviorManager.swapBehaviors( 'normalMouse', 'shiftMouse' );
@@ -660,36 +665,24 @@ wheelScroll: function( event ) {
     if ( !event )
         event = window.event;
 
-    // if( window.WheelEvent )
-    //     event = window.WheelEvent;
+    let { pixelX: x, pixelY: y} = normalizeWheel(event);
 
-    var delta = { x: 0, y: 0 };
-    if( 'wheelDeltaX' in event ) {
-        delta.x = event.wheelDeltaX/2;
-        delta.y = event.wheelDeltaY/2;
-    }
-    else if( 'deltaX' in event ) {
-        var multiplier = navigator.userAgent.indexOf("OS X 10.9")!==-1 ? -5 : -40;
-        delta.x = Math.abs(event.deltaY) > Math.abs(2*event.deltaX) ? 0 : event.deltaX*multiplier;
-        delta.y = event.deltaY*-10;
-    }
-    else if( event.wheelDelta ) {
-        delta.y = event.wheelDelta/2;
-        if( window.opera )
-            delta.y = -delta.y;
-    }
-    else if( event.detail ) {
-        delta.y = -event.detail*100;
-    }
+    var didScroll = false
 
-    delta.x = Math.round( delta.x * 2 );
-    delta.y = Math.round( delta.y );
-
-    if( delta.x )
-        this.keySlideX( -delta.x );
-    if( delta.y )
+    if( x ) {
+        this.keySlideX( x );
+        didScroll = true
+    }
+    if( y ) {
+        y = -y
         // 60 pixels per mouse wheel event
-        this.setY( this.getY() - delta.y );
+        var prevY = this.getY()
+        var currY = this.setY( prevY - y );
+        // check if clamping happened
+        if(currY !== prevY) {
+            didScroll = true
+        }
+    }
 
     //the timeout is so that we don't have to run showVisibleBlocks
     //for every scroll wheel click (we just wait until so many ms
@@ -705,7 +698,8 @@ wheelScroll: function( event ) {
         this.wheelScrollTimeout = null;
     }, 100));
 
-    dojo.stopEvent(event);
+    // allow event to bubble out of iframe for example
+    if(didScroll || this.browser.config.alwaysStopScrollBubble) dojo.stopEvent(event);
 },
 
 getX: function() {

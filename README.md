@@ -1,4 +1,5 @@
 [![Build status](https://travis-ci.org/GMOD/jbrowse.svg?branch=dev)](https://travis-ci.org/GMOD/jbrowse)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
 # Installing JBrowse
 
@@ -12,12 +13,37 @@ To install from GitHub, you can simply clone the repo and run the setup.sh scrip
     git clone https://github.com/GMOD/jbrowse
     cd jbrowse
     ./setup.sh
+    
+    
+## Develop JBrowse or JBrowse plugins
+
+To start modifying jbrowse code, you can run something like this
 
 
-Then run `npm run start` http://localhost:8082/index.html?data=sample_data/json/volvox
- to see the code running from a small express.js server.
+    git clone https://github.com/GMOD/jbrowse
+    cd jbrowse
+    ./setup.sh # not strictly necessary if you don't need to sample data
+    yarn
+    yarn watch
+    
+Then keep `yarn watch` running in the background as you create changes to your code. You can also run `yarn start` in another window and that will launch a webserver running jbrowse, or you can just have the jbrowse folder in your webserver directory. The key is to run yarn watch while you are editing code so that webpack incorporates your changes in either the main codebase (src/JBrowse folder) or any plugins (plugins/YourPlugin).
 
-You can alternatively just move this entire folder into a nginx or apache root directory e.g. /var/www/html and then navigate to http://localhost/jbrowse
+## Note for users in China
+
+In order to make downloads faster you can set a mirror for the npm registry
+
+    npm config set registry http://r.cnpmjs.org
+    npm config set puppeteer_download_host=http://cnpmjs.org/mirrors
+    export ELECTRON_MIRROR="http://cnpmjs.org/mirrors/electron/"
+
+
+## Notes on setting up a JBrowse server
+
+* If you don't have a webserver such as apache or nginx, you can run `npm run start` and open http://localhost:8082/index.html?data=sample_data/json/volvox to see the code running from a small express.js server.
+
+* You can alternatively just move the jbrowse folder into a nginx or apache root directory e.g. /var/www/html and then navigate to http://localhost/jbrowse
+
+
 
 *Note: you should avoid using sudo tasks like ./setup.sh and instead use chown/chmod on folders to your own user as necessary.*
 
@@ -29,7 +55,7 @@ You can alternatively just move this entire folder into a nginx or apache root d
 
 To install jbrowse from NPM directly, you can run.
 
-    npm install GMOD/jbrowse
+    npm install @gmod/jbrowse
 
 To setup a simple instance, you can use
 
@@ -84,6 +110,8 @@ NOTE: Beginning in 1.12.4,
 
 1. Run `build/release.sh $newReleaseVersion $nextReleaseVersion-alpha.0 notes.txt`, where notes.txt is any additional information to add to a blogpost. Then check its work, and then run the `git push` command it suggests to you. This makes a tag in the repository for the release, named, e.g. `1.6.3-release`.  This should cause Travis CI
 to create a release on GitHub under https://github.com/GMOD/jbrowse/releases
+
+1. Test that the page loads in IE11 on BrowserStack
 
 1. Add release notes to the new GitHub release that Travis created. Can just paste these from release-notes.md, which is in Markdown format.
 

@@ -213,12 +213,18 @@ constructor: function(params) {
                            // figure out what initial track list we will use:
                            var tracksToShow = [];
                            // always add alwaysOnTracks, regardless of any other track params
-                           if (thisB.config.alwaysOnTracks) { tracksToShow = tracksToShow.concat(thisB.config.alwaysOnTracks.split(",")); }
+                           if (thisB.config.alwaysOnTracks) {
+                               tracksToShow = tracksToShow.concat(thisB.config.alwaysOnTracks.split(","));
+                           }
                            // add tracks specified in URL track param,
                            //    if no URL track param then add last viewed tracks via tracks cookie
                            //    if no URL param and no tracks cookie, then use defaultTracks
-                           if (thisB.config.forceTracks)   { tracksToShow = tracksToShow.concat(thisB.config.forceTracks.split(",")); }
-                           else if (thisB.cookie("tracks")) { tracksToShow = tracksToShow.concat(thisB.cookie("tracks").split(",")); }
+                           if (thisB.config.forceTracks) {
+                               tracksToShow = tracksToShow.concat(thisB.config.forceTracks.split(","));
+                           }
+                           else if (thisB.cookie("tracks")) {
+                               tracksToShow = tracksToShow.concat(thisB.cookie("tracks").split(","));
+                           }
                            else if (thisB.config.defaultTracks) {
                                // In rare cases thisB.config.defaultTracks already contained an array that appeared to
                                // have been split in a previous invocation of this function. Thus, we only try and split
@@ -229,7 +235,9 @@ constructor: function(params) {
                            }
                            // currently, force "DNA" _only_ if no other guides as to what to show?
                            //    or should this be changed to always force DNA to show?
-                           if (tracksToShow.length == 0) { tracksToShow.push("DNA"); }
+                           if (tracksToShow.length == 0) {
+                               tracksToShow.push("DNA");
+                           }
                            // eliminate track duplicates (may have specified in both alwaysOnTracks and defaultTracks)
                            tracksToShow = Util.uniq(tracksToShow);
                            thisB.showTracks( tracksToShow );
@@ -332,7 +340,7 @@ initPlugins: function() {
                 p.css = configEntry.css ? configEntry.pluginDir+'/'+configEntry.css : false
                 p.js = configEntry.location
             } else {
-                this.fatalError(`plugin ${p.name} not found, please ensure the plugin was included in this JBrowse build`)
+                this.fatalError(`plugin ${p.name} not found. You can rebuild JBrowse with a -dev release or github clone with this plugin in the plugin folder`)
             }
         });
 
@@ -567,58 +575,71 @@ loadRefSeqs: function() {
             };
         }
 
-        // check refseq urls
-        if( this.config.refSeqs.url && this.config.refSeqs.url.match(/.fai$/) ) {
-            new IndexedFasta({browser: this, faiUrlTemplate: this.config.refSeqs.url})
-                .getRefSeqs(function(refSeqs) {
-                    thisB.addRefseqs(refSeqs);
-                    deferred.resolve({success:true});
-                }, function(error) {
-                    deferred.reject(error);
-                });
-            return;
-        } else if( this.config.refSeqs.url && this.config.refSeqs.url.match(/.2bit$/) ) {
-            new TwoBit({browser: this, urlTemplate: this.config.refSeqs.url})
-                .getRefSeqs(function(refSeqs) {
-                    thisB.addRefseqs(refSeqs);
-                    deferred.resolve({success:true});
-                }, function(error) {
-                    deferred.reject(error);
-                });
-        } else if( this.config.refSeqs.url && this.config.refSeqs.url.match(/.fa$/) ) {
-            new UnindexedFasta({browser: this, urlTemplate: this.config.refSeqs.url})
-                .getRefSeqs(function(refSeqs) {
-                    thisB.addRefseqs(refSeqs);
-                    deferred.resolve({success:true});
-                }, function(error) {
-                    deferred.reject(error);
-                });
-        } else if( this.config.refSeqs.url && this.config.refSeqs.url.match(/.sizes/) ) {
-            new ChromSizes({browser: this, urlTemplate: this.config.refSeqs.url})
-                .getRefSeqs(function(refSeqs) {
-                    thisB.addRefseqs(refSeqs);
-                    deferred.resolve({success:true});
-                }, function(error) {
-                    deferred.reject(error);
-                });
-        } else if( 'data' in this.config.refSeqs ) {
-            this.addRefseqs( this.config.refSeqs.data );
-            deferred.resolve({success:true});
+        if(this.config.refSeqs.storeClass) {
+            dojo.global.require([this.config.refSeqs.storeClass],
+                (CLASS) => {
+                    const r = new CLASS(Object.assign({browser: this},this.config.refSeqs))
+                    r.getRefSeqs(function(refSeqs) {
+                        thisB.addRefseqs(refSeqs);
+                        deferred.resolve({success:true})
+                    }, function(error) {
+                        deferred.reject(error)
+                    })
+            })
         } else {
-            request(this.resolveUrl(this.config.refSeqs.url), {
-                handleAs: 'text',
-                headers: {
-                    'X-Requested-With': null
-                }
-            } )
-                .then( function(o) {
-                           thisB.addRefseqs( dojo.fromJson(o) );
-                           deferred.resolve({success:true});
-                       },
-                       function( e ) {
-                           deferred.reject( 'Could not load reference sequence definitions. '+e );
-                       }
-                     );
+            // check refseq urls
+            if( this.config.refSeqs.url && this.config.refSeqs.url.match(/.fai$/) ) {
+                new IndexedFasta({browser: this, faiUrlTemplate: this.config.refSeqs.url})
+                    .getRefSeqs(function(refSeqs) {
+                        thisB.addRefseqs(refSeqs);
+                        deferred.resolve({success:true});
+                    }, function(error) {
+                        deferred.reject(error);
+                    });
+                return;
+            } else if( this.config.refSeqs.url && this.config.refSeqs.url.match(/.2bit$/) ) {
+                new TwoBit({browser: this, urlTemplate: this.config.refSeqs.url})
+                    .getRefSeqs(function(refSeqs) {
+                        thisB.addRefseqs(refSeqs);
+                        deferred.resolve({success:true});
+                    }, function(error) {
+                        deferred.reject(error);
+                    });
+            } else if( this.config.refSeqs.url && (this.config.refSeqs.url.match(/.fa$/)||this.config.refSeqs.url.match(/.fasta$/)) ) {
+                new UnindexedFasta({browser: this, urlTemplate: this.config.refSeqs.url})
+                    .getRefSeqs(function(refSeqs) {
+                        thisB.addRefseqs(refSeqs);
+                        deferred.resolve({success:true});
+                    }, function(error) {
+                        deferred.reject(error);
+                    });
+            } else if( this.config.refSeqs.url && this.config.refSeqs.url.match(/.sizes/) ) {
+                new ChromSizes({browser: this, urlTemplate: this.config.refSeqs.url})
+                    .getRefSeqs(function(refSeqs) {
+                        thisB.addRefseqs(refSeqs);
+                        deferred.resolve({success:true});
+                    }, function(error) {
+                        deferred.reject(error);
+                    });
+            } else if( 'data' in this.config.refSeqs ) {
+                this.addRefseqs( this.config.refSeqs.data );
+                deferred.resolve({success:true});
+            } else {
+                request(this.resolveUrl(this.config.refSeqs.url), {
+                    handleAs: 'text',
+                    headers: {
+                        'X-Requested-With': null
+                    }
+                } )
+                    .then( function(o) {
+                               thisB.addRefseqs( dojo.fromJson(o) );
+                               deferred.resolve({success:true});
+                           },
+                           function( e ) {
+                               deferred.reject( 'Could not load reference sequence definitions. '+e );
+                           }
+                         );
+            }
         }
     });
 },
@@ -730,12 +751,20 @@ regularizeReferenceName: function( refname ) {
         return refname;
 
     refname = refname.toLowerCase()
+
+    // special case of double regularizing behaving badly
+    if(refname.match(/^chrm/)) {
+        return 'chrm'
+    }
+
+    refname = refname
                      .replace(/^chro?m?(osome)?/,'chr')
                      .replace(/^co?n?ti?g/,'ctg')
                      .replace(/^scaff?o?l?d?/,'scaffold')
                      .replace(/^([a-z]*)0+/,'$1')
-                     .replace(/^(\d+|x|y)$/, 'chr$1' )
-                     .replace(/^mt$/, 'chrm');
+                     .replace(/^(\d+l?r?|x|y)$/, 'chr$1' )
+                     .replace(/^(x?)(ix|iv|v?i{0,3})$/, 'chr$1$2' )
+                     .replace(/^mt?(dna)?$/, 'chrm');
 
     return refname;
 },
@@ -966,6 +995,51 @@ initView: function() {
                         dojo.global.require ([type], CLASS => {
                             new CLASS(dojo.mixin({ browser: this }, conf)).show();
                         });
+                    }
+                }));
+            }
+
+            if (!this.config.disableReset) {
+                this.addGlobalMenuItem( 'view', new dijitMenuItem({
+                    label: 'Reset to defaults',
+                    id: 'menubar_reset_button',
+                    title: 'Reset view and tracks to defaults',
+
+                    onClick: () => {
+                        // resets zoom and location to default
+                        thisObj.navigateToLocation({
+                            ref:   thisObj.refSeq.name,
+                            start: 0.4 * ( thisObj.refSeq.start + thisObj.refSeq.end ),
+                            end:   0.6 * ( thisObj.refSeq.start + thisObj.refSeq.end )
+                        });
+
+                        // hide all tracks
+                        thisObj.publish('/jbrowse/v1/v/tracks/hide', thisObj.config.tracks);
+
+                        let tracksToShow = [];
+
+                        // the below code mainly follows the code that decides the default tracks in the constructor,
+                        // but it's different enough that it doesn't easily make a reusable function. Good idea for future refactor?
+
+                        // always add alwaysOnTracks, regardless of any other track params
+                        if (thisObj.config.alwaysOnTracks) {
+                            tracksToShow = tracksToShow.concat(thisObj.config.alwaysOnTracks.split(","));
+                        }
+                        if (tracksToShow.length == 0) {
+                            tracksToShow.push("DNA");
+                        }
+                        if (thisObj.config.defaultTracks) {
+                            // In rare cases thisObj.config.defaultTracks already contained an array that appeared to
+                            // have been split in a previous invocation of this function. Thus, we only try and split
+                            // it if it isn't already split.
+                            if (!(thisObj.config.defaultTracks instanceof Array)) {
+                                tracksToShow = tracksToShow.concat(thisObj.config.defaultTracks.split(","));
+                            }
+                        }
+                        tracksToShow = Util.uniq(tracksToShow)
+
+                        thisObj.showTracks( tracksToShow );
+
                     }
                 }));
             }
@@ -1345,7 +1419,7 @@ openFastaElectron: function() {
                     trackList.tracks[0].urlTemplate = fasta;
                     trackList.tracks[0].faiUrlTemplate = fai;
                     trackList.tracks[0].gziUrlTemplate = gzi;
-                    trackList.refSeqs = fai;
+                    trackList.refSeqs = {faiUrlTemplate: fai, storeClass:  'JBrowse/Store/SeqFeature/BgzipIndexedFasta', gziUrlTemplate: gzi};
                 }
                 else if( confs[0].store.fasta && confs[0].store.fai ) {
                     var fasta = Util.replacePath( confs[0].store.fasta.url );
@@ -1353,18 +1427,20 @@ openFastaElectron: function() {
                     trackList.tracks[0].storeClass= 'JBrowse/Store/SeqFeature/IndexedFasta';
                     trackList.tracks[0].urlTemplate = fasta;
                     trackList.tracks[0].faiUrlTemplate = fai;
-                    trackList.refSeqs = fai;
+                    trackList.refSeqs = {faiUrlTemplate: fai, storeClass:  'JBrowse/Store/SeqFeature/IndexedFasta'};
                 }
                 else if( confs[0].store.type == 'JBrowse/Store/SeqFeature/TwoBit' ) {
                     var f2bit = Util.replacePath( confs[0].store.blob.url );
                     trackList.tracks[0].storeClass = 'JBrowse/Store/SeqFeature/TwoBit';
                     trackList.tracks[0].urlTemplate = f2bit;
                     trackList.refSeqs = f2bit;
+                    trackList.refSeqs = {urlTemplate: f2bit, storeClass:  'JBrowse/Store/SeqFeature/TwoBit'};
                 }
                 else if( confs[0].store.type == 'JBrowse/Store/SeqFeature/ChromSizes' ) {
                     var sizes = Util.replacePath( confs[0].store.blob.url );
                     delete trackList.tracks;
                     trackList.refSeqs = sizes;
+                    trackList.refSeqs = {urlTemplate: sizes, storeClass:  'JBrowse/Store/SeqFeature/ChromSizes'};
                 }
                 else {
                     var fasta = Util.replacePath( confs[0].store.fasta.url );
@@ -1379,7 +1455,7 @@ openFastaElectron: function() {
                     }
                     trackList.tracks[0].storeClass = 'JBrowse/Store/SeqFeature/UnindexedFasta';
                     trackList.tracks[0].urlTemplate = fasta;
-                    trackList.refSeqs = fasta;
+                    trackList.refSeqs = {urlTemplate: fasta, storeClass: 'JBrowse/Store/SeqFeature/UnindexedFasta'};
                 }
 
                 // fix dir to be user data if we are accessing a url for fasta
@@ -2132,7 +2208,7 @@ loadConfig: function () {
             const parsedDataRoot = url.parse(url.resolve(window.location.href,this.config.dataRoot))
             if (parsedDataRoot.host) {
                 const currentParsed = url.parse(window.location.href)
-                if (parsedDataRoot.host !== currentParsed.host || parsedDataRoot.protocol !== currentParsed.protocol)
+                if (!Util.isElectron() && (parsedDataRoot.host !== currentParsed.host || parsedDataRoot.protocol !== currentParsed.protocol))
                     throw new Error('Invalid JBrowse dataRoot setting. For security, absolute URLs are not allowed. Set `allowCrossOriginDataRoot` to true to disable this security check.')
             }
         }
@@ -2373,11 +2449,14 @@ onFineMove: function(startbp, endbp) {
  * Asynchronously initialize our track metadata.
  */
 initTrackMetadata: function( callback ) {
+    var thisB = this
     return this._milestoneFunction( 'initTrackMetadata', function( deferred ) {
         var metaDataSourceClasses = dojo.map(
                                     (this.config.trackMetadata||{}).sources || [],
                                     function( sourceDef ) {
-                                        var url  = sourceDef.url || 'trackMeta.csv';
+                                        var url = sourceDef.relativeUrl ?
+                                            Util.resolveUrl(thisB.config.dataRoot+'/',sourceDef.relativeUrl) :
+                                            (sourceDef.url || 'trackMeta.csv');
                                         var type = sourceDef.type || (
                                                 /\.csv$/i.test(url)     ? 'csv'  :
                                                 /\.js(on)?$/i.test(url) ? 'json' :
@@ -3208,30 +3287,29 @@ createNavBox: function( parent ) {
                       }
                   });
     dojo.connect( navbox, 'onselectstart', function(evt) { evt.stopPropagation(); return true; });
+
     // monkey-patch the combobox code to make a few modifications
     (function(){
-
-         // add a moreMatches class to our hacked-in "more options" option
-         var dropDownProto = eval(this.locationBox.dropDownClass).prototype;
-         var oldCreateOption = dropDownProto._createOption;
-         dropDownProto._createOption = function( item ) {
-             var option = oldCreateOption.apply( this, arguments );
-             if( item.hitLimit )
-                 dojo.addClass( option, 'moreMatches');
-             return option;
-         };
-
-         // prevent the "more matches" option from being clicked
-         var oldOnClick = dropDownProto.onClick;
-         dropDownProto.onClick = function( node ) {
-             if( dojo.hasClass(node, 'moreMatches' ) )
-                 return null;
+        var PatchedDropDownClass = dojo.declare(this.locationBox.dropDownClass, {
+            // add a moreMatches class to our hacked-in "more options" option
+            _createOption: function( item ) {
+                var option = this.inherited(arguments);
+                if( item.hitLimit )
+                    dojo.addClass( option, 'moreMatches');
+                return option;
+            },
+            // prevent the "more matches" option from being clicked
+            onClick: function( node ) {
+                if( dojo.hasClass(node, 'moreMatches' ) )
+                    return null;
 
 
-            var ret = oldOnClick.apply( this, arguments );
-            thisB.navigateTo(thisB.locationBox.get('value'))
-            return ret;
-         };
+                var ret = this.inherited(arguments);
+                thisB.navigateTo(thisB.locationBox.get('value'))
+                return ret;
+            }
+        });
+        this.locationBox.dropDownClass = PatchedDropDownClass;
     }).call(this);
 
     // make the 'Go' button

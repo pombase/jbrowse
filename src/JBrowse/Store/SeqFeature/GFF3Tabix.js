@@ -1,6 +1,5 @@
 const gff = cjsRequire('@gmod/gff').default
 const { TabixIndexedFile } = cjsRequire('@gmod/tabix')
-const crc32 = cjsRequire('buffer-crc32')
 
 define([
            'dojo/_base/declare',
@@ -34,7 +33,7 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, In
     supportsFeatureTransforms: true,
 
     constructor( args ) {
-        this.dontRedispatch = (args.dontRedispatch||"").split( /\s*,\s*/ );
+        this.dontRedispatch = (args.dontRedispatch || 'chromosome,region').split( /\s*,\s*/ );
         var csiBlob, tbiBlob;
 
         if(args.csi || this.config.csiUrlTemplate) {
@@ -86,13 +85,13 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, In
             )
     },
 
-    _parseLine(columnNumbers, line) {
+    _parseLine(columnNumbers, line, fileOffset) {
         const fields = line.split("\t")
 
         return { // note: index column numbers are 1-based
             start: parseInt(fields[columnNumbers.start - 1]),
             end: parseInt(fields[columnNumbers.end - 1]),
-            lineHash: crc32.unsigned(line),
+            lineHash: fileOffset,
             fields,
         }
     },
@@ -114,8 +113,8 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, In
                     regularizedReferenceName || this.refSeq.name,
                     query.start,
                     query.end,
-                    line => {
-                        lines.push(this._parseLine(metadata.columnNumbers, line))
+                    (line, fileOffset) => {
+                        lines.push(this._parseLine(metadata.columnNumbers, line, fileOffset))
                     },
                 )
                 .then(
@@ -220,8 +219,10 @@ return declare( [ SeqFeatureStore, DeferredStatsMixin, DeferredFeaturesMixin, In
         delete f.derived_features
         f.start -= 1 // convert to interbase
         f.strand = {'+': 1, '-': -1, '.': 0, '?': undefined}[f.strand] // convert strand
+        const defaultFields = ['start','end','seq_id','score','type','source','phase','strand'];
         for (var a in data.attributes) {
             let b = a.toLowerCase();
+            if(defaultFields.includes(b)) b += '2'//reproduce behavior of NCList
             f[b] = data.attributes[a]
             if(f[b].length == 1) f[b] = f[b][0]
         }

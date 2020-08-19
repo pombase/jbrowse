@@ -1,3 +1,200 @@
+# Release 1.16.9     2020-05-21 16:50:24 UTC
+
+## Minor improvements
+
+ * Added a 'Reset to defaults' menu item, which addresses a long standing
+   issue. Thanks to a user with a very long github name for their
+   contribution (pull #1496, issue #764).
+
+ * Disable coordinate indicator on tab switch, thanks @lukaw3d (pull #1497)
+
+ * Small optimization bumping @gmod/bam from version 1.0.35->1.0.36 (@cmdcolin)
+
+ * Add ability to include/hide variant filters instead of just hide
+   (@cmdcolin, issue #1478)
+
+ * Add ability to color by TS tag. The useXS config now applies to `XS` and
+   `TS`, and the useTS tag only applies to the lower-case `ts` tag used by
+   minimap2 (pull #1493, @cmdcolin)
+
+## Bug fixes
+
+ * Fixed a race condition in the http-range-fetcher module that caused
+   "Error: "failed to retrieve file size"" messages when many tracks
+   were opened at once. Thanks to @russellmyers for the bug report!
+   (issue #1473)
+
+ * Fixed error with exporting highlighted regions with Save track data,
+   thanks to @lipan6461188 for reporting (issue #1488)
+
+ * Fixed ability to have custom mouseovers on features that have no
+   default mouseover e.g. features with no name or ID. Thanks to
+   @scottcain for reporting (pull #1487)
+
+ * Fixed the response for requests to HTTP 403 errors. Thanks to
+   @ilaydabozan for reporting (issue #1490)
+
+ * When there is only a single coordinate column in a tabix file, there
+   is now improved performance since the overlap checking code was
+   incorrect before in @gmod/tabix (@cmdcolin)
+
+ * Fix usage of bigwig "scoreType":"maxScore" config for bigwig tracks
+   (@cmdcolin, issue #1380)
+
+ * Fix a crash related to NCList histogram when a featureScale is applied
+   (issue #1327)
+
+ * Make it so that VCF tracks don't require CORS headers for Content-Range
+   (@cmdcolin)
+
+# Release 1.16.8     2020-02-05 01:37:43 UTC
+
+## Bug fixes
+
+ * Fixed an regression that made corrupted features around bgzip block
+   boundaries. Related to @gmod/tabix 1.2.0->1.3.2 fileOffset based feature ID.
+   Bug affected JBrowse 1.16.7 (issue #1464)
+
+# Release 1.16.7     2020-01-24 20:23:47 UTC
+
+## Minor improvements
+
+ * Add name regularization for refseqs named MtDNA (pull #1408,
+   @scottcain, @cmdcolin)
+
+ * Improved performance of startup time with large tracklists (pull #1412,
+   @cmdcolin)
+
+ * Improve consistency of scrolling behavior across browsers using
+   normalize-wheel npm package (@cmdcolin, @scottcain, pull #1429)
+
+ * Add trackMetadata->sortFacets boolean flag which can be set to false
+   to disable sorting the facet categories in the left hand column of the
+   faceted track selector. Thanks to Val Wood for championing this issue
+   for pombase! (@cmdcolin)
+
+ * Add `relativeUrl` to trackMetadata config so that URLs relative to the
+   data directory can be specified (the standard `url` config is relative
+   to the jbrowse root). Thanks to @loraine-gueguen for the report
+   (issue #1457)
+
+## Bug fixes
+
+ * Fix bug that has existed since 1.16.0 (since the introduction of @gmod/bam)
+   that caused some BAM tags to be missed.
+
+ * Added a fix for a performance regularization for large tracklists that
+   contain a lot of data. Thanks to @scottcain for reporting (#pull #1412,
+   @cmdcolin)
+
+ * Fixed ability to access remote data directories in desktop app
+   (issue #1413)
+
+ * Fixed ability to open FASTA files with the .fasta extension in the
+   desktop app. Thanks to @iankorf for reporting (issue #1415, pull #1426,
+   @cmdcolin)
+
+ * Fixed generate-names.pl to not overwrite the name store class (@Bjoernsen,
+   issue #1297, pull #1423)
+
+ * Fixed some documentation for Content-Range CORs headers and
+   renderAlignment configs (@cmdcolin)
+
+ * Fixed rendering of CRAM hard clipping, which would display mismatches
+   incorrectly (@cmdcolin, pull #1440, issue #1438)
+
+ * Fixed issue where some BAM features were given the incorrect feature ID
+   across blocks (@cmdcolin, https://github.com/GMOD/bam-js/pull/36)
+
+ * Removed monkey patching from the dropdown refseq box, thanks to @lukaw3d
+   for finding and fixing (@lukaw3d, pull #1439)
+
+ * Added fix for bigbed files with large headers, e.g. large autoSql schema
+   (@cmdcolin)
+
+ * Make VCF based features have distinct file IDs for similar overlapping features
+   with same ID, ALT, REF, etc. Thanks @scottcain for the report (@cmdcolin)
+
+ * Fixed a race-condition that prevented the ability to properly query using
+   upper-case characters in for example /?loc=UPPERCASE. Thanks to @scottcain
+   for reporting (pull #1435, @cmdcolin)
+
+# Release 1.16.6     2019-07-12 01:20:19 UTC
+
+## Minor improvements
+
+ * Add name regularization for drosophila style chromsome naming so that
+   2L maps to chr2L and vice versa (@scottcain)
+
+ * Add ability to index names in a BEDTabix file, enabled by default.
+   Thanks to @billzt for the idea and implementation (pull #1393)
+
+## Bug fixes
+
+ * Fix the side scrolling on Mac misbehaving and triggering the browser's
+   back action (a bug that existed only in 1.16.5). Thanks to @nathandunn
+   for debugging (issue #1397)
+
+# Release 1.16.5     2019-06-12 16:57:19 UTC
+
+## Minor improvements
+
+ * Added better error reporting if there is a BAI file for a genome that
+   is longer than 2^29 and requires a CSI index
+
+ * Added default dontRedispatch=chromosome,region which avoids long
+   GFF3Tabix redispatching for common gff3 types that don't need it.
+
+ * Added a `hideIframeDialogUrl` option to hide the iframe url in a
+   `iframeDialog` popup. Thanks to @mictadlo for the suggestion (issue
+   #1365)
+
+ * Updated @gmod/tabix and @gmod/bam to unzip bgzf chunks as they are
+   received instead of performing chunk merges. This also allows
+   actual fileOffset to be used as a feature ID instead of CRC32 hash
+   (@cmdcolin)
+
+ * Added regularization of chromosome names using roman numerals,
+   common in both S. cerevisiae and C. elegans genome communities.
+   Thanks to @scottcain for assistance (pull #1376, @cmdcolin)
+
+ * Added ability for vertical scroll events to bubble out of the jbrowse
+   div or iframe, which can be more intuitive in embedded jbrowse's.
+   Otherwise, the GenomeView stopped all vertical scroll events in it's
+   area. If you need the old behavior use `alwaysStopScrollBubble`.
+   (@cmdcolin, pull #1373)
+
+## Bug fixes
+
+ * Fixed a long standing issue with BigWig files not accessing the
+   lowest summary zoom level (e.g. the first one after unzoomed).
+   (@cmdcolin, issue #1359)
+
+ * Fixed a bug with using the scoreType: maxScore configuration on
+   Wiggle tracks failing at non-summary zoom levels. Thanks to
+   @patrickcng90 for reporting
+
+ * Fixed a bug with name regularizing that particularly affected CRAM
+   on mitochondrial chromosomes. Thanks to @sachalau for patience and
+   sample data for debugging this issue! (issue #1367, @cmdcolin)
+
+ * Fixed issue with GFF3/Tabix types colliding their attribute names
+   with the field e.g. if start=0 was in column 9. Thanks to
+   @loraine-gueguen for reporting (issue #1364).
+
+ * Fixed an issue with NeatHTMLFeatures when zoomed out. Thanks to
+   @abretaud for the implementation and fix (pull #1368).
+
+ * Restored ability to access widest zoom level from bigwig. Thanks
+   to @lukaw3d for noticing and debugging (issue #1375, @cmdcolin)
+
+ * Fixed some minor parsing of 'b' type data series in CRAM files,
+   which happens when CRAM is not using reference based compression
+   so it is uncommon (@cmdcolin)
+
+ * Added some more checks for track types for combination tracks (issue
+   #1361)
+
 # Release 1.16.4     2019-04-10 16:58:02 UTC
 
 ## Minor improvements

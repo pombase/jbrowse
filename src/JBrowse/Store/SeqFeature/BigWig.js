@@ -90,9 +90,10 @@ return declare([ SeqFeatureStore, DeferredFeaturesMixin, DeferredStatsMixin ],
             this.data.read.apply( this.data, arguments );
     },
 
-    _load: function() {
-        var thisB = this;
-        this._read( 0, 2000, lang.hitch( this, function( bytes ) {
+    _load: function(headerLen = 2000) {
+        this._read( 0, headerLen, async ( bytes ) => {
+            try {
+            const res = await this.data.statPromise()
             if( ! bytes ) {
                 this._failAllDeferred( 'BBI header not readable' );
                 return;
@@ -114,7 +115,7 @@ return declare([ SeqFeatureStore, DeferredFeaturesMixin, DeferredStatsMixin ],
             }
             this.type = magic == this.BIG_BED_MAGIC ? 'bigbed' : 'bigwig';
 
-            this.fileSize = bytes.fileSize;
+            this.fileSize = (res||{}).size
             if( ! this.fileSize )
                 console.warn("cannot get size of BigWig/BigBed file, widest zoom level not available");
 
@@ -128,7 +129,9 @@ return declare([ SeqFeatureStore, DeferredFeaturesMixin, DeferredStatsMixin ],
             this.asOffset = data.getUint64();
             this.totalSummaryOffset = data.getUint64();
             this.uncompressBufSize = data.getUint32();
-
+            if(this.asOffset > headerLen || this.totalSummaryOffset > headerLen) {
+                return this._load(headerLen*2)
+            }
 
             // dlog('bigType: ' + this.type);
             // dlog('chromTree at: ' + this.chromTreeOffset);
@@ -149,6 +152,8 @@ return declare([ SeqFeatureStore, DeferredFeaturesMixin, DeferredStatsMixin ],
             }
 
 
+
+
             // parse the autoSql if present (bigbed)
             if( this.asOffset ) {
                 (function() {
@@ -158,7 +163,7 @@ return declare([ SeqFeatureStore, DeferredFeaturesMixin, DeferredStatsMixin ],
                      while((c = d.getChar()) && c.charCodeAt() != 0) {
                          string += c;
                      }
-                     thisB.parseAutoSql(string);
+                     this.parseAutoSql(string);
                  }).call(this);
             }
 
@@ -187,9 +192,12 @@ return declare([ SeqFeatureStore, DeferredFeaturesMixin, DeferredStatsMixin ],
                 },
                 lang.hitch( this, '_failAllDeferred' )
             );
-        }),
+            } catch(e) {
+                this._failAllDeferred(e)
+            }
+        },
         lang.hitch( this, '_failAllDeferred' )
-       );
+       )
     },
 
     newDataView: function( bytes, offset, length ) {
@@ -336,7 +344,7 @@ return declare([ SeqFeatureStore, DeferredFeaturesMixin, DeferredStatsMixin ],
         var maxLevel = this.zoomLevels.length;
         if( ! this.fileSize ) // if we don't know the file size, we can't fetch the highest zoom level :-(
             maxLevel--;
-        for( var i = maxLevel; i > 0; i-- ) {
+        for( var i = maxLevel; i >= 0; i-- ) {
             var zh = this.zoomLevels[i];
             if( zh && zh.reductionLevel <= 2*basesPerPx ) {
                 var indexLength = i < this.zoomLevels.length - 1
