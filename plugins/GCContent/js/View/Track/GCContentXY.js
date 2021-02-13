@@ -46,7 +46,7 @@ function (
                 label: 'GC Track Options',
                 onClick: function () {
                     new WindowSize({
-                        setCallback: function (ws, wd, mode) {
+                        setCallback: function (ws, wd) {
                             track.config.windowSize = ws;
                             track.config.windowDelta = wd;
                             track.browser.publish('/jbrowse/v1/c/tracks/replace', [track.config]);
